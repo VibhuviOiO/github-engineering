@@ -33,8 +33,8 @@ permissions:
   contents: read
 
 jobs:
-  pr-checks:
-    name: PR check, build, test
+  pr-install:
+    name: Install
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
     steps:
@@ -47,10 +47,28 @@ jobs:
           python-version: ${{ inputs.python-version }}
           requirements-file: ${{ inputs.requirements-file }}
 
+  pr-quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
+    needs: pr-install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Quality check
         uses: VibhuviOiO/github-engineering/.github/actions/quality-check@main
         with:
           message: PR placeholder quality check completed.
+
+  pr-build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
+    needs: pr-quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Build image
         uses: VibhuviOiO/github-engineering/.github/actions/docker-build@main
@@ -59,13 +77,22 @@ jobs:
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ github.sha }}
 
+  pr-test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
+    needs: pr-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Test run
         uses: VibhuviOiO/github-engineering/.github/actions/test-run@main
         with:
           message: PR placeholder test completed.
 
-  develop-deploy:
-    name: Quality, build, test, deploy
+  develop-install:
+    name: Install
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     steps:
@@ -78,10 +105,28 @@ jobs:
           python-version: ${{ inputs.python-version }}
           requirements-file: ${{ inputs.requirements-file }}
 
+  develop-quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: develop-install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Quality check
         uses: VibhuviOiO/github-engineering/.github/actions/quality-check@main
         with:
           message: Develop placeholder quality check completed.
+
+  develop-build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: develop-quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Build image
         uses: VibhuviOiO/github-engineering/.github/actions/docker-build@main
@@ -90,10 +135,28 @@ jobs:
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ github.sha }}
 
+  develop-test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: develop-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Test run
         uses: VibhuviOiO/github-engineering/.github/actions/test-run@main
         with:
           message: Develop placeholder test completed.
+
+  develop-deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: develop-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Deploy to dev
         uses: VibhuviOiO/github-engineering/.github/actions/deploy-dev@main
