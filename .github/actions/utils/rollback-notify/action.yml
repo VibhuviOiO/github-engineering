@@ -1,0 +1,21 @@
+name: Rollback Notify
+description: Placeholder rollback notification path.
+
+inputs:
+  target:
+    description: Rollback target environment or service.
+    required: false
+    default: dev
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Rollback notification placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Rollback notification placeholder
+      shell: bash
+      run: |
+        echo "Rollback target: ${{ inputs.target }}"
+        echo "${{ inputs.message }}"

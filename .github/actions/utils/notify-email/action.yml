@@ -1,0 +1,27 @@
+name: Notify Email
+description: Placeholder email notification action.
+
+inputs:
+  to:
+    description: Email recipient.
+    required: false
+    default: engineering-alerts@example.com
+  smtp-host:
+    description: SMTP host.
+    required: false
+    default: smtp.example.com
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Email notification placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Email notification placeholder
+      shell: bash
+      run: |
+        echo "Provider: email"
+        echo "To: ${{ inputs.to }}"
+        echo "SMTP host: ${{ inputs.smtp-host }}"
+        echo "${{ inputs.message }}"

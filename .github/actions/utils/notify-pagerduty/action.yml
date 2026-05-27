@@ -1,0 +1,27 @@
+name: Notify PagerDuty
+description: Placeholder PagerDuty notification action.
+
+inputs:
+  service-id:
+    description: PagerDuty service identifier.
+    required: false
+    default: PDEV123
+  integration-key:
+    description: PagerDuty integration key.
+    required: false
+    default: pd_dummy_integration_key
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: PagerDuty notification placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: PagerDuty notification placeholder
+      shell: bash
+      run: |
+        echo "Provider: pagerduty"
+        echo "Service ID: ${{ inputs.service-id }}"
+        echo "Integration key: ${{ inputs.integration-key }}"
+        echo "${{ inputs.message }}"

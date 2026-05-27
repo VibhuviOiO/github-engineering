@@ -1,0 +1,26 @@
+name: Notify
+description: Placeholder notification utility action for Slack, PagerDuty, email, or other providers.
+
+inputs:
+  provider:
+    description: Notification provider name.
+    required: false
+    default: slack
+  target:
+    description: Notification target such as a Slack channel, PagerDuty service, or email address.
+    required: false
+    default: engineering-alerts
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Notification placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Notify placeholder
+      shell: bash
+      run: |
+        echo "Provider: ${{ inputs.provider }}"
+        echo "Target: ${{ inputs.target }}"
+        echo "${{ inputs.message }}"

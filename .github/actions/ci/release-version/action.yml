@@ -1,0 +1,26 @@
+name: Release Version
+description: Placeholder release tagging and versioning step.
+
+inputs:
+  release-tag:
+    description: Release tag value.
+    required: false
+    default: v0.1.0
+  version-strategy:
+    description: Versioning strategy name.
+    required: false
+    default: semantic-version
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Release versioning placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Release version placeholder
+      shell: bash
+      run: |
+        echo "Release tag: ${{ inputs.release-tag }}"
+        echo "Strategy: ${{ inputs.version-strategy }}"
+        echo "${{ inputs.message }}"

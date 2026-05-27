@@ -1,15 +1,19 @@
-name: Deploy Dev
-description: Placeholder deploy-to-dev step.
+name: Deploy
+description: Placeholder deployment step for any target environment.
 
 inputs:
   environment-name:
     description: Target environment name.
     required: false
     default: dev
+  deployment-target:
+    description: Deployment target identifier such as a cluster, namespace, or app name.
+    required: false
+    default: dev-cluster
   message:
     description: Message shown in the workflow logs.
     required: false
-    default: Deploy to dev placeholder completed.
+    default: Deployment placeholder completed.
 
 runs:
   using: composite
@@ -18,4 +22,5 @@ runs:
       shell: bash
       run: |
         echo "Environment: ${{ inputs.environment-name }}"
+        echo "Target: ${{ inputs.deployment-target }}"
         echo "${{ inputs.message }}"

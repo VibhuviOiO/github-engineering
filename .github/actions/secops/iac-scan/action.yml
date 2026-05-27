@@ -1,0 +1,21 @@
+name: IaC Scan
+description: Placeholder infrastructure-as-code scan.
+
+inputs:
+  scan-path:
+    description: Path containing infrastructure code.
+    required: false
+    default: infrastructure
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: IaC scan placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: IaC scan placeholder
+      shell: bash
+      run: |
+        echo "Scan path: ${{ inputs.scan-path }}"
+        echo "${{ inputs.message }}"

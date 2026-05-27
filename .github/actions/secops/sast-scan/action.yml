@@ -1,0 +1,15 @@
+name: SAST Scan
+description: Placeholder static application security testing step.
+
+inputs:
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: SAST placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: SAST placeholder
+      shell: bash
+      run: echo "${{ inputs.message }}"

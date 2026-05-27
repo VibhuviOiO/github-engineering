@@ -1,0 +1,15 @@
+name: Secret Scan
+description: Placeholder secret scanning step.
+
+inputs:
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Secret scan placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Secret scan placeholder
+      shell: bash
+      run: echo "${{ inputs.message }}"

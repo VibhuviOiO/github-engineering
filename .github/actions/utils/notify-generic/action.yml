@@ -1,0 +1,27 @@
+name: Notify Generic
+description: Placeholder generic webhook notification action.
+
+inputs:
+  endpoint:
+    description: Notification endpoint.
+    required: false
+    default: https://example.internal/hooks/notify
+  method:
+    description: HTTP method.
+    required: false
+    default: POST
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Generic notification placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Generic notification placeholder
+      shell: bash
+      run: |
+        echo "Provider: generic"
+        echo "Endpoint: ${{ inputs.endpoint }}"
+        echo "Method: ${{ inputs.method }}"
+        echo "${{ inputs.message }}"
