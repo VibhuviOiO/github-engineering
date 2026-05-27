@@ -13,6 +13,16 @@ on:
         required: false
         type: string
         default: requirements.txt
+      dockerfile:
+        description: Path to the Dockerfile to build.
+        required: false
+        type: string
+        default: Dockerfile
+      image-name:
+        description: Local image name used for Docker build validation.
+        required: false
+        type: string
+        default: fastapi-app
 
 permissions:
   contents: read
@@ -30,3 +40,18 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
           requirements-file: ${{ inputs.requirements-file }}
+
+  docker-build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        uses: VibhuviOiO/github-engineering/.github/actions/docker-build@main
+        with:
+          dockerfile: ${{ inputs.dockerfile }}
+          image-name: ${{ inputs.image-name }}
+          image-tag: ${{ github.sha }}
