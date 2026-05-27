@@ -1,0 +1,32 @@
+name: FastAPI CI Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version used for the CI job.
+        required: false
+        type: string
+        default: '3.13.7'
+      requirements-file:
+        description: Path to the requirements file.
+        required: false
+        type: string
+        default: requirements.txt
+
+permissions:
+  contents: read
+
+jobs:
+  install-dependencies:
+    name: Install Python dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install requirements
+        uses: VibhuviOiO/github-engineering/.github/actions/pip-install@main
+        with:
+          python-version: ${{ inputs.python-version }}
+          requirements-file: ${{ inputs.requirements-file }}
