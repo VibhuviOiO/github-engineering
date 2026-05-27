@@ -1,0 +1,21 @@
+name: Deploy Dev
+description: Placeholder deploy-to-dev step.
+
+inputs:
+  environment-name:
+    description: Target environment name.
+    required: false
+    default: dev
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Deploy to dev placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Deploy placeholder
+      shell: bash
+      run: |
+        echo "Environment: ${{ inputs.environment-name }}"
+        echo "${{ inputs.message }}"

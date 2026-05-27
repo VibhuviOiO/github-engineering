@@ -1,0 +1,15 @@
+name: Test Run
+description: Placeholder test step.
+
+inputs:
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Test placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Test placeholder
+      shell: bash
+      run: echo "${{ inputs.message }}"
