@@ -23,14 +23,20 @@ on:
         required: false
         type: string
         default: fastapi-app
+      environment-name:
+        description: Target environment name for deploy steps.
+        required: false
+        type: string
+        default: dev
 
 permissions:
   contents: read
 
 jobs:
-  install-dependencies:
-    name: Install Python dependencies
+  pr-checks:
+    name: PR check, build, test
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,13 +47,10 @@ jobs:
           python-version: ${{ inputs.python-version }}
           requirements-file: ${{ inputs.requirements-file }}
 
-  docker-build:
-    name: Build Docker image
-    runs-on: ubuntu-latest
-    needs: install-dependencies
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Quality check
+        uses: VibhuviOiO/github-engineering/.github/actions/quality-check@main
+        with:
+          message: PR placeholder quality check completed.
 
       - name: Build image
         uses: VibhuviOiO/github-engineering/.github/actions/docker-build@main
@@ -55,3 +58,45 @@ jobs:
           dockerfile: ${{ inputs.dockerfile }}
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ github.sha }}
+
+      - name: Test run
+        uses: VibhuviOiO/github-engineering/.github/actions/test-run@main
+        with:
+          message: PR placeholder test completed.
+
+  develop-deploy:
+    name: Quality, build, test, deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install requirements
+        uses: VibhuviOiO/github-engineering/.github/actions/pip-install@main
+        with:
+          python-version: ${{ inputs.python-version }}
+          requirements-file: ${{ inputs.requirements-file }}
+
+      - name: Quality check
+        uses: VibhuviOiO/github-engineering/.github/actions/quality-check@main
+        with:
+          message: Develop placeholder quality check completed.
+
+      - name: Build image
+        uses: VibhuviOiO/github-engineering/.github/actions/docker-build@main
+        with:
+          dockerfile: ${{ inputs.dockerfile }}
+          image-name: ${{ inputs.image-name }}
+          image-tag: ${{ github.sha }}
+
+      - name: Test run
+        uses: VibhuviOiO/github-engineering/.github/actions/test-run@main
+        with:
+          message: Develop placeholder test completed.
+
+      - name: Deploy to dev
+        uses: VibhuviOiO/github-engineering/.github/actions/deploy-dev@main
+        with:
+          environment-name: ${{ inputs.environment-name }}
+          message: Develop placeholder deploy completed.
