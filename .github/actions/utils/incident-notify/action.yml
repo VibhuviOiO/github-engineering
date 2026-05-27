@@ -1,0 +1,26 @@
+name: Incident Notify
+description: Placeholder incident notification path.
+
+inputs:
+  severity:
+    description: Incident severity.
+    required: false
+    default: sev-3
+  target:
+    description: Incident response target.
+    required: false
+    default: on-call-primary
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Incident notification placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Incident notification placeholder
+      shell: bash
+      run: |
+        echo "Severity: ${{ inputs.severity }}"
+        echo "Target: ${{ inputs.target }}"
+        echo "${{ inputs.message }}"

@@ -1,0 +1,21 @@
+name: Container Image Scan
+description: Placeholder container image vulnerability scan.
+
+inputs:
+  image-ref:
+    description: Image reference to scan.
+    required: false
+    default: sample/app:latest
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Container image scan placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Container image scan placeholder
+      shell: bash
+      run: |
+        echo "Image: ${{ inputs.image-ref }}"
+        echo "${{ inputs.message }}"

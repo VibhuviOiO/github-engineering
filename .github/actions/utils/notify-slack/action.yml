@@ -1,0 +1,27 @@
+name: Notify Slack
+description: Placeholder Slack notification action.
+
+inputs:
+  channel:
+    description: Slack channel.
+    required: false
+    default: '#engineering-alerts'
+  webhook-url:
+    description: Slack webhook URL.
+    required: false
+    default: https://hooks.slack.com/services/T00000000/B00000000/EXAMPLE000000000000000000
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Slack notification placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Slack notification placeholder
+      shell: bash
+      run: |
+        echo "Provider: slack"
+        echo "Channel: ${{ inputs.channel }}"
+        echo "Webhook: ${{ inputs.webhook-url }}"
+        echo "${{ inputs.message }}"

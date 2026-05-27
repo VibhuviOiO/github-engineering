@@ -24,142 +24,356 @@ on:
         type: string
         default: fastapi-app
       environment-name:
-        description: Target environment name for deploy steps.
+        description: Target environment name for downstream workflows.
         required: false
         type: string
         default: dev
+      deployment-target:
+        description: Deployment target identifier.
+        required: false
+        type: string
+        default: dev-cluster
+      artifact-name:
+        description: Artifact name for dummy upload.
+        required: false
+        type: string
+        default: build-output
+      artifact-path:
+        description: Artifact path for dummy upload.
+        required: false
+        type: string
+        default: dist
+      run-artifact-upload:
+        description: Whether the artifact upload job should run.
+        required: false
+        type: boolean
+        default: true
+      run-dependency-scan:
+        description: Whether the dependency scan job should run.
+        required: false
+        type: boolean
+        default: true
+      run-sbom:
+        description: Whether the SBOM job should run.
+        required: false
+        type: boolean
+        default: true
+      run-secret-scan:
+        description: Whether the secret scan job should run.
+        required: false
+        type: boolean
+        default: true
+      run-sast:
+        description: Whether the SAST job should run.
+        required: false
+        type: boolean
+        default: true
+      run-image-scan:
+        description: Whether the container image scan job should run.
+        required: false
+        type: boolean
+        default: true
+      run-iac-scan:
+        description: Whether the IaC scan job should run.
+        required: false
+        type: boolean
+        default: true
+      run-release:
+        description: Whether the release versioning job should run.
+        required: false
+        type: boolean
+        default: false
+      run-approval:
+        description: Whether the approval gate job should run.
+        required: false
+        type: boolean
+        default: false
+      run-deploy:
+        description: Whether the deploy job should run.
+        required: false
+        type: boolean
+        default: false
+      run-build-notify:
+        description: Whether the build notification job should run.
+        required: false
+        type: boolean
+        default: false
+      run-deploy-notify:
+        description: Whether the deploy notification job should run.
+        required: false
+        type: boolean
+        default: false
+      run-rollback-notify:
+        description: Whether the rollback notification job should run.
+        required: false
+        type: boolean
+        default: false
+      run-incident-notify:
+        description: Whether the incident notification job should run.
+        required: false
+        type: boolean
+        default: false
+      notify-provider:
+        description: Notification provider name.
+        required: false
+        type: string
+        default: slack
+      notify-target:
+        description: Notification target such as a Slack channel, PagerDuty service, or email address.
+        required: false
+        type: string
+        default: engineering-alerts
+      release-tag:
+        description: Release tag for dummy versioning.
+        required: false
+        type: string
+        default: v0.1.0
+      approval-environment:
+        description: Environment name for dummy approval gate.
+        required: false
+        type: string
+        default: staging
 
 permissions:
   contents: read
 
 jobs:
-  pr-install:
+  install:
     name: Install
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Install requirements
-        uses: VibhuviOiO/github-engineering/.github/actions/pip-install@main
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/install/python@main
         with:
           python-version: ${{ inputs.python-version }}
           requirements-file: ${{ inputs.requirements-file }}
 
-  pr-quality:
+  quality:
     name: Quality
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
-    needs: pr-install
+    needs: install
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Quality check
-        uses: VibhuviOiO/github-engineering/.github/actions/quality-check@main
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/quality/python@main
         with:
-          message: PR placeholder quality check completed.
+          message: Pipeline placeholder quality check completed.
 
-  pr-build:
+  build:
     name: Build
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
-    needs: pr-quality
+    needs: quality
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Build image
-        uses: VibhuviOiO/github-engineering/.github/actions/docker-build@main
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/docker-build@main
         with:
           dockerfile: ${{ inputs.dockerfile }}
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ github.sha }}
 
-  pr-test:
+  test:
     name: Test
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'develop')
-    needs: pr-build
+    needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Test run
-        uses: VibhuviOiO/github-engineering/.github/actions/test-run@main
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/test/python@main
         with:
-          message: PR placeholder test completed.
+          message: Pipeline placeholder test completed.
 
-  develop-install:
-    name: Install
+  artifact-upload:
+    name: Artifact Upload
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: build
+    if: ${{ inputs.run-artifact-upload && needs.build.result == 'success' }}
+    steps:
+      - name: Artifact upload
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/artifact-upload@main
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}
+          message: Pipeline placeholder artifact upload completed.
+
+  dependency-scan:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ inputs.run-dependency-scan && needs.test.result == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install requirements
-        uses: VibhuviOiO/github-engineering/.github/actions/pip-install@main
+      - name: Dependency scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/dependency-scan@main
         with:
-          python-version: ${{ inputs.python-version }}
-          requirements-file: ${{ inputs.requirements-file }}
+          message: Pipeline placeholder dependency scan completed.
 
-  develop-quality:
-    name: Quality
+  sbom:
+    name: SBOM
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    needs: develop-install
+    needs: dependency-scan
+    if: ${{ inputs.run-sbom && (needs.dependency-scan.result == 'success' || needs.dependency-scan.result == 'skipped') }}
+    steps:
+      - name: SBOM generation
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/sbom-generate@main
+        with:
+          output-file: sbom.json
+          message: Pipeline placeholder SBOM generation completed.
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ inputs.run-secret-scan && needs.test.result == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Quality check
-        uses: VibhuviOiO/github-engineering/.github/actions/quality-check@main
+      - name: Secret scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/secret-scan@main
         with:
-          message: Develop placeholder quality check completed.
+          message: Pipeline placeholder secret scan completed.
 
-  develop-build:
-    name: Build
+  sast:
+    name: SAST
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    needs: develop-quality
+    needs: test
+    if: ${{ inputs.run-sast && needs.test.result == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build image
-        uses: VibhuviOiO/github-engineering/.github/actions/docker-build@main
+      - name: SAST scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/sast-scan@main
         with:
-          dockerfile: ${{ inputs.dockerfile }}
-          image-name: ${{ inputs.image-name }}
-          image-tag: ${{ github.sha }}
+          message: Pipeline placeholder SAST scan completed.
 
-  develop-test:
-    name: Test
+  image-scan:
+    name: Image Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    needs: develop-build
+    needs: build
+    if: ${{ inputs.run-image-scan && needs.build.result == 'success' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Test run
-        uses: VibhuviOiO/github-engineering/.github/actions/test-run@main
+      - name: Container image scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/container-image-scan@main
         with:
-          message: Develop placeholder test completed.
+          image-ref: ${{ inputs.image-name }}:${{ github.sha }}
+          message: Pipeline placeholder container image scan completed.
 
-  develop-deploy:
+  iac-scan:
+    name: IaC Scan
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ inputs.run-iac-scan && needs.build.result == 'success' }}
+    steps:
+      - name: IaC scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/iac-scan@main
+        with:
+          scan-path: infrastructure
+          message: Pipeline placeholder IaC scan completed.
+
+  release-version:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ inputs.run-release && needs.test.result == 'success' }}
+    steps:
+      - name: Release tagging and versioning
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/release-version@main
+        with:
+          release-tag: ${{ inputs.release-tag }}
+          message: Pipeline placeholder release versioning completed.
+
+  approval-gate:
+    name: Approval
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - release-version
+    if: ${{ always() && !cancelled() && inputs.run-approval && needs.test.result == 'success' && (needs.release-version.result == 'success' || needs.release-version.result == 'skipped') }}
+    steps:
+      - name: Approval gate
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/approval-gate@main
+        with:
+          environment-name: ${{ inputs.approval-environment }}
+          message: Pipeline placeholder approval gate completed.
+
+  notify-build:
+    name: Notify Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ inputs.run-build-notify && needs.build.result == 'success' }}
+    steps:
+      - name: Build notification
+        uses: VibhuviOiO/github-engineering/.github/actions/utils/notify@main
+        with:
+          provider: ${{ inputs.notify-provider }}
+          target: ${{ inputs.notify-target }}
+          message: Build notification placeholder completed.
+
+  deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    needs: develop-test
+    needs:
+      - test
+      - approval-gate
+    if: ${{ always() && !cancelled() && inputs.run-deploy && needs.test.result == 'success' && (needs.approval-gate.result == 'success' || needs.approval-gate.result == 'skipped') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Deploy to dev
-        uses: VibhuviOiO/github-engineering/.github/actions/deploy-dev@main
+      - name: Deploy
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/deploy@main
         with:
           environment-name: ${{ inputs.environment-name }}
-          message: Develop placeholder deploy completed.
+          deployment-target: ${{ inputs.deployment-target }}
+          message: Deployment placeholder completed.
+
+  notify-deploy:
+    name: Notify Deploy
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: ${{ always() && !cancelled() && inputs.run-deploy-notify && needs.deploy.result == 'success' }}
+    steps:
+      - name: Deploy notification
+        uses: VibhuviOiO/github-engineering/.github/actions/utils/notify@main
+        with:
+          provider: ${{ inputs.notify-provider }}
+          target: ${{ inputs.notify-target }}
+          message: Deploy notification placeholder completed.
+
+  rollback-notify:
+    name: Rollback Notify
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: ${{ always() && !cancelled() && inputs.run-rollback-notify && needs.deploy.result == 'success' }}
+    steps:
+      - name: Rollback notification
+        uses: VibhuviOiO/github-engineering/.github/actions/utils/rollback-notify@main
+        with:
+          target: ${{ inputs.environment-name }}
+          message: Rollback notification placeholder completed.
+
+  incident-notify:
+    name: Incident Notify
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: ${{ always() && !cancelled() && inputs.run-incident-notify && needs.deploy.result == 'success' }}
+    steps:
+      - name: Incident notification
+        uses: VibhuviOiO/github-engineering/.github/actions/utils/incident-notify@main
+        with:
+          severity: sev-3
+          target: on-call-primary
+          message: Incident notification placeholder completed.

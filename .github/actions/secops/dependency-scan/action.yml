@@ -1,0 +1,15 @@
+name: Dependency Scan
+description: Placeholder dependency vulnerability scan.
+
+inputs:
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Dependency scan placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Dependency scan placeholder
+      shell: bash
+      run: echo "${{ inputs.message }}"

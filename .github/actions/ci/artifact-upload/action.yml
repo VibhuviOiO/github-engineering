@@ -1,0 +1,26 @@
+name: Artifact Upload
+description: Placeholder artifact upload step.
+
+inputs:
+  artifact-name:
+    description: Artifact name.
+    required: false
+    default: build-output
+  artifact-path:
+    description: Artifact path.
+    required: false
+    default: dist
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Artifact upload placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Artifact upload placeholder
+      shell: bash
+      run: |
+        echo "Artifact: ${{ inputs.artifact-name }}"
+        echo "Path: ${{ inputs.artifact-path }}"
+        echo "${{ inputs.message }}"

@@ -1,0 +1,26 @@
+name: Approval Gate
+description: Placeholder approval gate for staging or production.
+
+inputs:
+  environment-name:
+    description: Target environment requiring approval.
+    required: false
+    default: staging
+  approver-group:
+    description: Approver group or owner.
+    required: false
+    default: release-managers
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Approval gate placeholder completed.
+
+runs:
+  using: composite
+  steps:
+    - name: Approval gate placeholder
+      shell: bash
+      run: |
+        echo "Environment: ${{ inputs.environment-name }}"
+        echo "Approvers: ${{ inputs.approver-group }}"
+        echo "${{ inputs.message }}"
