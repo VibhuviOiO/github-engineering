@@ -1,15 +1,58 @@
 name: Dependency Scan
-description: Placeholder dependency vulnerability scan.
+
+description: Scan project dependencies for known vulnerabilities.
 
 inputs:
-  message:
-    description: Message shown in the workflow logs.
-    required: false
-    default: Dependency scan placeholder completed.
+
+  tech-stack:
+    description: Technology stack
+    required: true
 
 runs:
   using: composite
+
   steps:
-    - name: Dependency scan placeholder
+
+    # Python
+
+    - name: Install pip-audit
+      if: inputs.tech-stack == 'python'
       shell: bash
-      run: echo "${{ inputs.message }}"
+      run: |
+        pip install pip-audit
+
+    - name: Run Python Dependency Scan
+      if: inputs.tech-stack == 'python'
+      shell: bash
+      run: |
+        pip-audit
+
+    # NodeJS
+
+    - name: Run NodeJS Dependency Scan
+      if: inputs.tech-stack == 'nodejs'
+      shell: bash
+      run: |
+        npm audit --audit-level=high
+
+    # Java
+
+    - name: Run Java Dependency Scan
+      if: inputs.tech-stack == 'java'
+      shell: bash
+      run: |
+        mvn org.owasp:dependency-check-maven:check
+
+    # Go
+
+    - name: Install govulncheck
+      if: inputs.tech-stack == 'go'
+      shell: bash
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run Go Dependency Scan
+      if: inputs.tech-stack == 'go'
+      shell: bash
+      run: |
+        govulncheck ./...

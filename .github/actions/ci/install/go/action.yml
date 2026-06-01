@@ -1,0 +1,22 @@
+name: Go Dependency Download
+
+description: Download Go module dependencies.
+
+inputs:
+  go-version:
+    description: Go version to install.
+    required: false
+    default: "1.24"
+
+runs:
+  using: composite
+
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Download dependencies
+      shell: bash
+      run: go mod download

@@ -1,15 +1,18 @@
 name: Secret Scan
-description: Placeholder secret scanning step.
 
-inputs:
-  message:
-    description: Message shown in the workflow logs.
-    required: false
-    default: Secret scan placeholder completed.
+description: Scan repository for hardcoded secrets using Gitleaks.
 
 runs:
   using: composite
+
   steps:
-    - name: Secret scan placeholder
+
+    - name: Install Gitleaks
       shell: bash
-      run: echo "${{ inputs.message }}"
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin
+
+    - name: Run Secret Scan
+      shell: bash
+      run: |
+        gitleaks detect --source . --verbose

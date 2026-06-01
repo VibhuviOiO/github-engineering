@@ -1,15 +1,56 @@
 name: SAST Scan
-description: Placeholder static application security testing step.
 
-inputs:
-  message:
-    description: Message shown in the workflow logs.
-    required: false
-    default: SAST placeholder completed.
+description: Static Application Security Testing using Semgrep.
 
 runs:
   using: composite
+
   steps:
-    - name: SAST placeholder
+
+    - name: Install Semgrep
       shell: bash
-      run: echo "${{ inputs.message }}"
+      run: |
+        python -m pip install semgrep
+
+    - name: Run Semgrep Scan
+      shell: bash
+      run: |
+        semgrep scan --config auto .
+
+# name: SAST Scan
+
+# description: Static Application Security Testing.
+
+# inputs:
+
+#   scanner:
+#     description: SAST scanner (semgrep, codeql, sonarqube)
+#     required: false
+#     default: semgrep
+
+# runs:
+#   using: composite
+
+#   steps:
+
+#     # Semgrep
+
+#     - name: Install Semgrep
+#       if: inputs.scanner == 'semgrep'
+#       shell: bash
+#       run: |
+#         python -m pip install semgrep
+
+#     - name: Run Semgrep
+#       if: inputs.scanner == 'semgrep'
+#       shell: bash
+#       run: |
+#         semgrep scan --config auto .
+
+#     # CodeQL
+
+#     - name: Run CodeQL
+#       if: inputs.scanner == 'codeql'
+#       shell: bash
+#       run: |
+        # echo "CodeQL scan triggered"
