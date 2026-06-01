@@ -1,0 +1,11 @@
+name: Java Maven Test Run
+
+description: Run Java tests using Maven.
+
+runs:
+  using: composite
+
+  steps:
+    - name: Run Java Tests
+      shell: bash
+      run: mvn test

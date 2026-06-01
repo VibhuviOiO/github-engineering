@@ -1,0 +1,11 @@
+name: NodeJS Test Run
+
+description: Run NodeJS tests.
+
+runs:
+  using: composite
+
+  steps:
+    - name: Run NodeJS Tests
+      shell: bash
+      run: npm test

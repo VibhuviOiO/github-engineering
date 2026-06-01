@@ -1,0 +1,11 @@
+name: Go Test Run
+
+description: Run Go tests.
+
+runs:
+  using: composite
+
+  steps:
+    - name: Run Go Tests
+      shell: bash
+      run: go test ./...
