@@ -1,26 +1,37 @@
 name: SBOM Generate
-description: Placeholder software bill of materials generation step.
+
+description: Generate Software Bill of Materials using Syft.
 
 inputs:
+
   format:
     description: SBOM output format.
     required: false
     default: cyclonedx-json
+
   output-file:
     description: Output file path.
     required: false
     default: sbom.json
-  message:
-    description: Message shown in the workflow logs.
-    required: false
-    default: SBOM generation placeholder completed.
 
 runs:
   using: composite
+
   steps:
-    - name: SBOM placeholder
+
+    - name: Install Syft
       shell: bash
       run: |
-        echo "Format: ${{ inputs.format }}"
-        echo "Output: ${{ inputs.output-file }}"
-        echo "${{ inputs.message }}"
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+    - name: Generate SBOM
+      shell: bash
+      run: |
+        syft dir:. \
+          -o ${{ inputs.format }} \
+          > ${{ inputs.output-file }}
+
+    - name: Verify SBOM Generated
+      shell: bash
+      run: |
+        ls -lh ${{ inputs.output-file }}
