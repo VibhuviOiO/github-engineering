@@ -1,56 +1,97 @@
 name: SAST Scan
 
+
+
 description: Static Application Security Testing using Semgrep.
 
+
+
 runs:
+
   using: composite
+
+
 
   steps:
 
+
+
     - name: Install Semgrep
+
       shell: bash
+
       run: |
+
         python -m pip install semgrep
 
+
+
     - name: Run Semgrep Scan
+
       shell: bash
+
       run: |
+
         semgrep scan --config auto .
 
-# name: SAST Scan
 
-# description: Static Application Security Testing.
+
+
+
+
+# name: SAST Scan
+# description: Placeholder static application security testing step.
 
 # inputs:
-
-#   scanner:
-#     description: SAST scanner (semgrep, codeql, sonarqube)
+#   message:
+#     description: Message shown in the workflow logs.
 #     required: false
-#     default: semgrep
+#     default: SAST placeholder completed.
 
 # runs:
 #   using: composite
-
 #   steps:
-
-#     # Semgrep
-
-#     - name: Install Semgrep
-#       if: inputs.scanner == 'semgrep'
+#     - name: SAST placeholder
 #       shell: bash
-#       run: |
-#         python -m pip install semgrep
+#       run: echo "${{ inputs.message }}"
 
-#     - name: Run Semgrep
-#       if: inputs.scanner == 'semgrep'
-#       shell: bash
-#       run: |
-#         semgrep scan --config auto .
+# # name: SAST Scan
 
-#     # CodeQL
+# # description: Static Application Security Testing.
 
-#     - name: Run CodeQL
-#       if: inputs.scanner == 'codeql'
-#       shell: bash
-#       run: |
-        # echo "CodeQL scan triggered"
+# # inputs:
+
+# #   scanner:
+# #     description: SAST scanner (semgrep, codeql, sonarqube)
+# #     required: false
+# #     default: semgrep
+
+# # runs:
+# #   using: composite
+
+# #   steps:
+
+# #     # Semgrep
+
+# #     - name: Install Semgrep
+# #       if: inputs.scanner == 'semgrep'
+# #       shell: bash
+# #       run: |
+# #         python -m pip install semgrep
+
+# #     - name: Run Semgrep
+# #       if: inputs.scanner == 'semgrep'
+# #       shell: bash
+# #       run: |
+# #         semgrep scan --config auto .
+
+# #     # CodeQL
+
+# #     - name: Run CodeQL
+# #       if: inputs.scanner == 'codeql'
+# #       shell: bash
+# #       run: |
+#         # echo "CodeQL scan triggered"
+
+
+

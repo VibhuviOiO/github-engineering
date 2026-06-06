@@ -1,0 +1,127 @@
+name: NodeJS backend CI
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        type: string
+      dockerfile:
+        required: false
+        type: string
+      image-name:
+        required: false
+        type: string
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        uses: venkateshkallu/github-engineering-lab/.github/actions/ci/install/nodejs@main
+        with:
+          node-version: ${{ inputs.node-version }}
+
+  test:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Tests
+        uses: venkateshkallu/github-engineering-lab/.github/actions/ci/test/nodejs@main
+        with:
+          node-version: ${{ inputs.node-version }}
+  quality:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Quality Check
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/quality/nodejs@main
+
+  dependency-scan:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency Scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/dependency-scan@main
+        with:
+          tech-stack: nodejs
+
+  secret-scan:
+    needs: dependency-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secret Scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/secret-scan@main
+
+  sast-scan:
+    needs: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SAST Scan
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/sast-scan@main
+
+  container-security:
+    needs: sast-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Build
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/docker-build@main
+        with:
+          dockerfile: ${{ inputs.dockerfile }}
+          image-name: ${{ inputs.image-name }}
+          image-tag: ${{ github.sha }}
+
+      - name: Container Image Scan (placeholder)
+        run: |
+          echo "Container scan skipped in this lint environment"
+          echo "image: ${{ inputs.image-name }}:${{ github.sha }}"
+
+      - name: Generate SBOM
+        uses: VibhuviOiO/github-engineering/.github/actions/secops/sbom-generate@main
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+  artifact-upload:
+    needs: container-security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload Coverage
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/artifact-upload@main
+        with:
+          artifact-name: coverage-report
+          artifact-path: coverage
+
+      - name: Upload SBOM
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/artifact-upload@main
+        with:
+          artifact-name: sbom
+          artifact-path: sbom.json
+  release-version:
+    needs: artifact-upload
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Release Version
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/release-version@main
+        with:
+          release-tag: v1.0.0

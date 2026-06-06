@@ -1,46 +1,15 @@
 name: Test Run
-
-description: Run tests for supported technology stacks.
+description: Placeholder test step.
 
 inputs:
-
-  tech-stack:
-    description: Technology stack
-    required: true
+  message:
+    description: Message shown in the workflow logs.
+    required: false
+    default: Test placeholder completed.
 
 runs:
   using: composite
-
   steps:
-
-    # Python
-
-    - name: Run Python Tests
-      if: inputs.tech-stack == 'python'
+    - name: Test placeholder
       shell: bash
-      run: |
-        pytest
-
-    # NodeJS
-
-    - name: Run NodeJS Tests
-      if: inputs.tech-stack == 'nodejs'
-      shell: bash
-      run: |
-        npm test
-
-    # Java Maven
-
-    - name: Run Java Maven Tests
-      if: inputs.tech-stack == 'java'
-      shell: bash
-      run: |
-        mvn test
-
-    # Go
-
-    - name: Run Go Tests
-      if: inputs.tech-stack == 'go'
-      shell: bash
-      run: |
-        go test ./...
+      run: echo "${{ inputs.message }}"

@@ -6,13 +6,56 @@ runs:
   using: composite
 
   steps:
-
     - name: Install Gitleaks
       shell: bash
       run: |
-        curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin
+        GITLEAKS_VERSION="8.24.2"
+
+        wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
+
+        tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
+
+        sudo mv gitleaks /usr/local/bin/
+
+        gitleaks version
 
     - name: Run Secret Scan
       shell: bash
       run: |
-        gitleaks detect --source . --verbose
+        gitleaks detect \
+          --source . \
+          --verbose
+
+
+
+
+
+# name: Secret Scan
+
+# description: Placeholder secret scanning step.
+
+
+
+# inputs:
+
+#   message:
+
+#     description: Message shown in the workflow logs.
+
+#     required: false
+
+#     default: Secret scan placeholder completed.
+
+
+
+# runs:
+
+#   using: composite
+
+#   steps:
+
+#     - name: Secret scan placeholder
+
+#       shell: bash
+
+#       run: echo "${{ inputs.message }}"
