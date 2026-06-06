@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Dependencies
-        uses: venkateshkallu/github-engineering-lab/.github/actions/ci/install/nodejs@main
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/install/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
 
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Tests
-        uses: venkateshkallu/github-engineering-lab/.github/actions/ci/test/nodejs@main
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/test/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
   quality:
