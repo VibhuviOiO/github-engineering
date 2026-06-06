@@ -1,26 +1,58 @@
 name: Artifact Upload
-description: Placeholder artifact upload step.
+
+description: Upload build, test and security artifacts.
 
 inputs:
+
   artifact-name:
     description: Artifact name.
-    required: false
-    default: build-output
+    required: true
+
   artifact-path:
     description: Artifact path.
-    required: false
-    default: dist
-  message:
-    description: Message shown in the workflow logs.
-    required: false
-    default: Artifact upload placeholder completed.
+    required: true
 
 runs:
   using: composite
+
   steps:
-    - name: Artifact upload placeholder
-      shell: bash
-      run: |
-        echo "Artifact: ${{ inputs.artifact-name }}"
-        echo "Path: ${{ inputs.artifact-path }}"
-        echo "${{ inputs.message }}"
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
+        if-no-files-found: warn
+
+
+
+
+
+
+
+# name: Artifact Upload
+# description: Placeholder artifact upload step.
+
+# inputs:
+#   artifact-name:
+#     description: Artifact name.
+#     required: false
+#     default: build-output
+#   artifact-path:
+#     description: Artifact path.
+#     required: false
+#     default: dist
+#   message:
+#     description: Message shown in the workflow logs.
+#     required: false
+#     default: Artifact upload placeholder completed.
+
+# runs:
+#   using: composite
+#   steps:
+#     - name: Artifact upload placeholder
+#       shell: bash
+#       run: |
+#         echo "Artifact: ${{ inputs.artifact-name }}"
+#         echo "Path: ${{ inputs.artifact-path }}"
+#         echo "${{ inputs.message }}"
