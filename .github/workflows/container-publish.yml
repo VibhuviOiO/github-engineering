@@ -54,12 +54,6 @@ on:
         type: boolean
         default: false
 
-      dockerhub-username:
-        description: Docker Hub username. Required when dockerhub-enabled is true.
-        required: false
-        type: string
-        default: ''
-
       dockerhub-namespace:
         description: |
           Docker Hub namespace. Defaults to the GitHub repository owner.
@@ -73,12 +67,6 @@ on:
         required: false
         type: boolean
         default: false
-
-      quay-username:
-        description: Quay.io username. Required when quay-enabled is true.
-        required: false
-        type: string
-        default: ''
 
       quay-namespace:
         description: |
@@ -115,8 +103,16 @@ on:
         default: ''
 
     secrets:
+      dockerhub-username:
+        description: Docker Hub username. Required when dockerhub-enabled is true.
+        required: false
+
       dockerhub-token:
         description: Docker Hub access token. Required when dockerhub-enabled is true.
+        required: false
+
+      quay-username:
+        description: Quay.io username. Required when quay-enabled is true.
         required: false
 
       quay-token:
@@ -167,35 +163,35 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Validate required registry credentials
+      - name: Validate required registry secrets
         env:
           DOCKERHUB_ENABLED: ${{ inputs.dockerhub-enabled }}
-          DOCKERHUB_USERNAME: ${{ inputs.dockerhub-username }}
+          DOCKERHUB_USERNAME: ${{ secrets.dockerhub-username }}
           DOCKERHUB_TOKEN: ${{ secrets.dockerhub-token }}
           QUAY_ENABLED: ${{ inputs.quay-enabled }}
-          QUAY_USERNAME: ${{ inputs.quay-username }}
+          QUAY_USERNAME: ${{ secrets.quay-username }}
           QUAY_TOKEN: ${{ secrets.quay-token }}
         run: |
           fail=0
 
           if [ "$DOCKERHUB_ENABLED" = "true" ]; then
             missing=()
-            [ -z "$DOCKERHUB_USERNAME" ] && missing+=("inputs.dockerhub-username")
+            [ -z "$DOCKERHUB_USERNAME" ] && missing+=("secrets.dockerhub-username")
             [ -z "$DOCKERHUB_TOKEN" ] && missing+=("secrets.dockerhub-token")
             if [ ${#missing[@]} -ne 0 ]; then
-              echo "::error::Missing Docker Hub credentials: ${missing[*]}"
-              echo "::error::Pass username as an input and token as a secret, then re-run this workflow."
+              echo "::error::Missing Docker Hub secrets: ${missing[*]}"
+              echo "::error::Add them as repository or organization secrets, then re-run this workflow."
               fail=1
             fi
           fi
 
           if [ "$QUAY_ENABLED" = "true" ]; then
             missing=()
-            [ -z "$QUAY_USERNAME" ] && missing+=("inputs.quay-username")
+            [ -z "$QUAY_USERNAME" ] && missing+=("secrets.quay-username")
             [ -z "$QUAY_TOKEN" ] && missing+=("secrets.quay-token")
             if [ ${#missing[@]} -ne 0 ]; then
-              echo "::error::Missing Quay.io credentials: ${missing[*]}"
-              echo "::error::Pass username as an input and token as a secret, then re-run this workflow."
+              echo "::error::Missing Quay.io secrets: ${missing[*]}"
+              echo "::error::Add them as repository or organization secrets, then re-run this workflow."
               fail=1
             fi
           fi
@@ -204,7 +200,7 @@ jobs:
             exit 1
           fi
 
-          echo "All required registry credentials are present."
+          echo "All required registry secrets are present."
 
       - name: Log in to GitHub Container Registry
         if: ${{ inputs.ghcr-enabled }}
@@ -218,7 +214,7 @@ jobs:
         if: ${{ inputs.dockerhub-enabled }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
-          username: ${{ inputs.dockerhub-username }}
+          username: ${{ secrets.dockerhub-username }}
           password: ${{ secrets.dockerhub-token }}
 
       - name: Log in to Quay.io
@@ -226,7 +222,7 @@ jobs:
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: quay.io
-          username: ${{ inputs.quay-username }}
+          username: ${{ secrets.quay-username }}
           password: ${{ secrets.quay-token }}
 
       - name: Build image list
