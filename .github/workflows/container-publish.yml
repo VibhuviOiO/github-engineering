@@ -103,19 +103,19 @@ on:
         default: ''
 
     secrets:
-      dockerhub-username:
+      DOCKERHUB_USERNAME:
         description: Docker Hub username. Required when dockerhub-enabled is true.
         required: false
 
-      dockerhub-token:
+      DOCKERHUB_TOKEN:
         description: Docker Hub access token. Required when dockerhub-enabled is true.
         required: false
 
-      quay-username:
+      QUAY_USERNAME:
         description: Quay.io username. Required when quay-enabled is true.
         required: false
 
-      quay-token:
+      QUAY_TOKEN:
         description: Quay.io encrypted password or robot token. Required when quay-enabled is true.
         required: false
 
@@ -166,18 +166,18 @@ jobs:
       - name: Validate required registry secrets
         env:
           DOCKERHUB_ENABLED: ${{ inputs.dockerhub-enabled }}
-          DOCKERHUB_USERNAME: ${{ secrets.dockerhub-username }}
-          DOCKERHUB_TOKEN: ${{ secrets.dockerhub-token }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           QUAY_ENABLED: ${{ inputs.quay-enabled }}
-          QUAY_USERNAME: ${{ secrets.quay-username }}
-          QUAY_TOKEN: ${{ secrets.quay-token }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
         run: |
           fail=0
 
           if [ "$DOCKERHUB_ENABLED" = "true" ]; then
             missing=()
-            [ -z "$DOCKERHUB_USERNAME" ] && missing+=("secrets.dockerhub-username")
-            [ -z "$DOCKERHUB_TOKEN" ] && missing+=("secrets.dockerhub-token")
+            [ -z "$DOCKERHUB_USERNAME" ] && missing+=("DOCKERHUB_USERNAME")
+            [ -z "$DOCKERHUB_TOKEN" ] && missing+=("DOCKERHUB_TOKEN")
             if [ ${#missing[@]} -ne 0 ]; then
               echo "::error::Missing Docker Hub secrets: ${missing[*]}"
               echo "::error::Add them as repository or organization secrets, then re-run this workflow."
@@ -187,8 +187,8 @@ jobs:
 
           if [ "$QUAY_ENABLED" = "true" ]; then
             missing=()
-            [ -z "$QUAY_USERNAME" ] && missing+=("secrets.quay-username")
-            [ -z "$QUAY_TOKEN" ] && missing+=("secrets.quay-token")
+            [ -z "$QUAY_USERNAME" ] && missing+=("QUAY_USERNAME")
+            [ -z "$QUAY_TOKEN" ] && missing+=("QUAY_TOKEN")
             if [ ${#missing[@]} -ne 0 ]; then
               echo "::error::Missing Quay.io secrets: ${missing[*]}"
               echo "::error::Add them as repository or organization secrets, then re-run this workflow."
@@ -214,16 +214,16 @@ jobs:
         if: ${{ inputs.dockerhub-enabled }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
-          username: ${{ secrets.dockerhub-username }}
-          password: ${{ secrets.dockerhub-token }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to Quay.io
         if: ${{ inputs.quay-enabled }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: quay.io
-          username: ${{ secrets.quay-username }}
-          password: ${{ secrets.quay-token }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
 
       - name: Build image list
         id: images
