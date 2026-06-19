@@ -1,0 +1,38 @@
+name: Registry Login
+
+description: |
+  Log in to a container registry. Supports GHCR, Docker Hub, Quay.io,
+  and any other registry accepted by docker/login-action.
+
+inputs:
+  registry:
+    description: |
+      Registry hostname. Use "ghcr.io", "docker.io" (or leave empty for Docker Hub),
+      "quay.io", or any private registry.
+    required: false
+    default: ''
+
+  username:
+    description: Registry username.
+    required: true
+
+  password:
+    description: Registry password or access token.
+    required: true
+
+  logout:
+    description: Log out of the registry after the step completes.
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+
+  steps:
+    - name: Log in to container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
+        logout: ${{ inputs.logout }}
