@@ -110,16 +110,18 @@ Generic, multi-registry Docker image build and publish pipeline.
 | `sbom` | no | `false` | Generate SBOM attestation |
 | `build-args` | no | — | Multi-line Docker build arguments (`KEY=value`) |
 
-**Secrets:**
+**Variables and Secrets:**
 
-| Secret | Required when | Description |
-|--------|---------------|-------------|
-| `dockerhub-username` | `dockerhub-enabled: true` | Docker Hub username |
-| `dockerhub-token` | `dockerhub-enabled: true` | Docker Hub access token |
-| `quay-username` | `quay-enabled: true` | Quay.io username |
-| `quay-token` | `quay-enabled: true` | Quay.io password or robot token |
+| Name | Type | Required when | Description |
+|------|------|---------------|-------------|
+| `dockerhub-username` | Variable | `dockerhub-enabled: true` | Docker Hub username |
+| `dockerhub-token` | Secret | `dockerhub-enabled: true` | Docker Hub access token |
+| `quay-username` | Variable | `quay-enabled: true` | Quay.io username |
+| `quay-token` | Secret | `quay-enabled: true` | Quay.io password or robot token |
 
 GHCR uses the built-in `GITHUB_TOKEN`; no extra secret required.
+
+> **Security note:** Store usernames as Variables and tokens/passwords as Secrets. Secrets are encrypted; Variables are plaintext.
 
 **Example caller (GHCR + Docker Hub, version from code):**
 
@@ -197,7 +199,7 @@ Test registry authentication without building or pushing. Run this after adding 
 | `dockerhub-enabled` | no | `false` | Validate Docker Hub login |
 | `quay-enabled` | no | `false` | Validate Quay.io login |
 
-**Secrets:** same as `container-publish.yml`.
+**Variables and Secrets:** same as `container-publish.yml`.
 
 **Example caller:**
 
@@ -237,10 +239,11 @@ No extra credentials required. The workflow uses the built-in `GITHUB_TOKEN`.
    - **Account Settings → Security → New Access Token**
    - Name it `github-actions-ldap` or similar
    - Copy the token (you will only see it once)
-3. Add repository secrets:
+3. Add repository/org **Variables**:
    - `DOCKERHUB_USERNAME` = your Docker Hub username
+4. Add repository/org **Secrets**:
    - `DOCKERHUB_TOKEN` = the access token
-4. Repositories are created automatically on first push (e.g., `vibhuvioio/ldap-manager`, `vibhuvioio/openldap`).
+5. Repositories are created automatically on first push (e.g., `vibhuvioio/ldap-manager`, `vibhuvioio/openldap`).
 
 ### Quay.io
 
@@ -249,14 +252,15 @@ No extra credentials required. The workflow uses the built-in `GITHUB_TOKEN`.
 3. Create a robot account or use your password:
    - **Organization → Robot Accounts → Create Robot Account**
    - Copy the username and token
-4. Add repository secrets:
+4. Add repository/org **Variables**:
    - `QUAY_USERNAME` = robot account username or your username
+5. Add repository/org **Secrets**:
    - `QUAY_TOKEN` = robot token or encrypted password
-5. Repositories can be created automatically on first push or manually in the UI.
+6. Repositories can be created automatically on first push or manually in the UI.
 
 ### Recommended secrets per repository
 
 | Repository | GHCR | Docker Hub | Quay |
 |---|---|---|---|
-| `ldap-manager` | `GITHUB_TOKEN` (auto) | `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | `QUAY_USERNAME`, `QUAY_TOKEN` |
-| `openldap-docker` | `GITHUB_TOKEN` (auto) | `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | `QUAY_USERNAME`, `QUAY_TOKEN` |
+| `ldap-manager` | `GITHUB_TOKEN` (auto) | Var: `DOCKERHUB_USERNAME`<br>Secret: `DOCKERHUB_TOKEN` | Var: `QUAY_USERNAME`<br>Secret: `QUAY_TOKEN` |
+| `openldap-docker` | `GITHUB_TOKEN` (auto) | Var: `DOCKERHUB_USERNAME`<br>Secret: `DOCKERHUB_TOKEN` | Var: `QUAY_USERNAME`<br>Secret: `QUAY_TOKEN` |
