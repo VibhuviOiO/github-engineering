@@ -76,6 +76,14 @@ on:
         type: string
         default: ''
 
+      quay-continue-on-error:
+        description: |
+          Continue publishing to other registries if Quay.io login fails.
+          When true, Quay is skipped and a warning is emitted instead of failing the job.
+        required: false
+        type: boolean
+        default: false
+
       use-cache:
         description: Enable GitHub Actions cache for Docker layers.
         required: false
@@ -218,12 +226,27 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to Quay.io
+        id: quay-login
         if: ${{ inputs.quay-enabled }}
+        continue-on-error: ${{ inputs.quay-continue-on-error }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Determine Quay availability
+        id: quay
+        if: ${{ success() || steps.quay-login.outcome == 'failure' }}
+        run: |
+          if [ "${{ steps.quay-login.outcome }}" = "success" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.quay-enabled }}" = "true" ]; then
+              echo "::warning::Quay.io login failed; skipping Quay publishing."
+            fi
+          fi
 
       - name: Build image list
         id: images
@@ -237,7 +260,7 @@ jobs:
             [ -z "$ns" ] && ns="${{ steps.owner.outputs.owner }}"
             images="${images}${ns}/${{ inputs.image-name }},"
           fi
-          if [ "${{ inputs.quay-enabled }}" = "true" ]; then
+          if [ "${{ inputs.quay-enabled }}" = "true" ] && [ "${{ steps.quay.outputs.ok }}" = "true" ]; then
             ns="${{ inputs.quay-namespace }}"
             [ -z "$ns" ] && ns="${{ steps.owner.outputs.owner }}"
             images="${images}quay.io/${ns}/${{ inputs.image-name }},"
@@ -272,13 +295,18 @@ jobs:
 
       - name: Summary
         run: |
+          quay_status="${{ inputs.quay-enabled }}"
+          if [ "${{ inputs.quay-enabled }}" = "true" ] && [ "${{ steps.quay.outputs.ok }}" != "true" ]; then
+            quay_status="true (login failed — skipped)"
+          fi
+
           echo "### Container Published" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Registry | Enabled |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|----------|---------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Registry | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| GHCR     | ${{ inputs.ghcr-enabled }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Docker Hub | ${{ inputs.dockerhub-enabled }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Quay.io  | ${{ inputs.quay-enabled }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Quay.io  | ${quay_status} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Tags:**" >> "$GITHUB_STEP_SUMMARY"
           echo '${{ steps.meta.outputs.tags }}' | tr ',' '\n' | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
