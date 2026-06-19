@@ -76,6 +76,15 @@ on:
         type: string
         default: ''
 
+      quay-robot-account:
+        description: |
+          Quay.io robot account short name (the part after the '+').
+          When provided, the login username is built as '<quay-namespace>+<quay-robot-account>'.
+          If omitted, the QUAY_USERNAME secret is used unchanged.
+        required: false
+        type: string
+        default: ''
+
       quay-continue-on-error:
         description: |
           Continue publishing to other registries if Quay.io login fails.
@@ -232,7 +241,7 @@ jobs:
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: quay.io
-          username: ${{ secrets.QUAY_USERNAME }}
+          username: "${{ inputs['quay-robot-account'] != '' && format('{0}+{1}', (inputs['quay-namespace'] != '' && inputs['quay-namespace']) || steps.owner.outputs.owner, inputs['quay-robot-account']) || secrets.QUAY_USERNAME }}"
           password: ${{ secrets.QUAY_TOKEN }}
 
       - name: Determine Quay availability

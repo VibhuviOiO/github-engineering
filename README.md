@@ -105,6 +105,8 @@ Generic, multi-registry Docker image build and publish pipeline.
 | `dockerhub-namespace` | no | repo owner | Docker Hub namespace |
 | `quay-enabled` | no | `false` | Publish to Quay.io |
 | `quay-namespace` | no | repo owner | Quay.io namespace |
+| `quay-robot-account` | no | — | Robot account short name. When set, the login username becomes `<quay-namespace>+<quay-robot-account>` |
+| `quay-continue-on-error` | no | `false` | Skip Quay and continue if Quay login fails |
 | `use-cache` | no | `true` | Enable GHA layer cache |
 | `provenance` | no | `false` | Generate provenance attestation |
 | `sbom` | no | `false` | Generate SBOM attestation |
@@ -249,13 +251,17 @@ No extra credentials required. The workflow uses the built-in `GITHUB_TOKEN`.
 
 1. Sign up or log in to [quay.io](https://quay.io).
 2. Create an organization (e.g., `vibhuvioio`) or use your personal namespace.
-3. Create a robot account or use your password:
+3. Create a robot account:
    - **Organization → Robot Accounts → Create Robot Account**
-   - Copy the username and token
+   - The robot username is shown as `<organization>+<robot-name>`, e.g. `vibhuvioio+github_actions`
+   - Copy the **token** (the long random string, not the Kubernetes secret blob)
 4. Add repository/org **Secrets** (names must match exactly):
-   - `QUAY_USERNAME` = robot account username or your username
-   - `QUAY_TOKEN` = robot token or encrypted password
-5. Repositories can be created automatically on first push or manually in the UI.
+   - `QUAY_USERNAME` = the full robot username (`vibhuvioio+github_actions`)
+   - `QUAY_TOKEN` = the robot token
+5. In the caller workflow you can either:
+   - leave `quay-robot-account` empty and rely on `QUAY_USERNAME`, or
+   - set `quay-namespace: vibhuvioio` and `quay-robot-account: github_actions`, and put only the namespace in `QUAY_USERNAME`
+6. Repositories can be created automatically on first push or manually in the UI.
 
 ### Recommended secrets per repository
 
