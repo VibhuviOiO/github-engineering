@@ -228,7 +228,7 @@ jobs:
       - name: Log in to Quay.io
         id: quay-login
         if: ${{ inputs.quay-enabled }}
-        continue-on-error: ${{ inputs.quay-continue-on-error }}
+        continue-on-error: ${{ fromJSON(inputs.quay-continue-on-error) }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: quay.io
