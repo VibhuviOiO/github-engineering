@@ -173,10 +173,10 @@ jobs:
 
       - name: Validate required registry secrets
         env:
-          DOCKERHUB_ENABLED: ${{ inputs.dockerhub-enabled }}
+          DOCKERHUB_ENABLED: ${{ inputs['dockerhub-enabled'] }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          QUAY_ENABLED: ${{ inputs.quay-enabled }}
+          QUAY_ENABLED: ${{ inputs['quay-enabled'] }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
         run: |
@@ -211,7 +211,7 @@ jobs:
           echo "All required registry secrets are present."
 
       - name: Log in to GitHub Container Registry
-        if: ${{ inputs.ghcr-enabled }}
+        if: ${{ inputs['ghcr-enabled'] }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: ghcr.io
@@ -219,7 +219,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: ${{ inputs.dockerhub-enabled }}
+        if: ${{ inputs['dockerhub-enabled'] }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -227,8 +227,8 @@ jobs:
 
       - name: Log in to Quay.io
         id: quay-login
-        if: ${{ inputs.quay-enabled }}
-        continue-on-error: ${{ fromJSON(inputs.quay-continue-on-error) }}
+        if: ${{ inputs['quay-enabled'] }}
+        continue-on-error: ${{ fromJSON(inputs['quay-continue-on-error']) }}
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: quay.io
@@ -243,7 +243,7 @@ jobs:
             echo "ok=true" >> "$GITHUB_OUTPUT"
           else
             echo "ok=false" >> "$GITHUB_OUTPUT"
-            if [ "${{ inputs.quay-enabled }}" = "true" ]; then
+            if [ "${{ inputs['quay-enabled'] }}" = "true" ]; then
               echo "::warning::Quay.io login failed; skipping Quay publishing."
             fi
           fi
@@ -252,18 +252,18 @@ jobs:
         id: images
         run: |
           images=""
-          if [ "${{ inputs.ghcr-enabled }}" = "true" ]; then
-            images="${images}ghcr.io/${{ steps.owner.outputs.owner }}/${{ inputs.image-name }},"
+          if [ "${{ inputs['ghcr-enabled'] }}" = "true" ]; then
+            images="${images}ghcr.io/${{ steps.owner.outputs.owner }}/${{ inputs['image-name'] }},"
           fi
-          if [ "${{ inputs.dockerhub-enabled }}" = "true" ]; then
-            ns="${{ inputs.dockerhub-namespace }}"
+          if [ "${{ inputs['dockerhub-enabled'] }}" = "true" ]; then
+            ns="${{ inputs['dockerhub-namespace'] }}"
             [ -z "$ns" ] && ns="${{ steps.owner.outputs.owner }}"
-            images="${images}${ns}/${{ inputs.image-name }},"
+            images="${images}${ns}/${{ inputs['image-name'] }},"
           fi
-          if [ "${{ inputs.quay-enabled }}" = "true" ] && [ "${{ steps.quay.outputs.ok }}" = "true" ]; then
-            ns="${{ inputs.quay-namespace }}"
+          if [ "${{ inputs['quay-enabled'] }}" = "true" ] && [ "${{ steps.quay.outputs.ok }}" = "true" ]; then
+            ns="${{ inputs['quay-namespace'] }}"
             [ -z "$ns" ] && ns="${{ steps.owner.outputs.owner }}"
-            images="${images}quay.io/${ns}/${{ inputs.image-name }},"
+            images="${images}quay.io/${ns}/${{ inputs['image-name'] }},"
           fi
           # Remove trailing comma
           images="${images%,}"
@@ -281,7 +281,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
-          context: ${{ inputs.build-context }}
+          context: ${{ inputs['build-context'] }}
           file: ${{ inputs.dockerfile }}
           push: ${{ inputs.push }}
           platforms: ${{ inputs.platforms }}
@@ -289,14 +289,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: ${{ inputs.provenance }}
           sbom: ${{ inputs.sbom }}
-          build-args: ${{ inputs.build-args }}
-          cache-from: ${{ inputs.use-cache && 'type=gha' || '' }}
-          cache-to: ${{ inputs.use-cache && 'type=gha,mode=max' || '' }}
+          build-args: ${{ inputs['build-args'] }}
+          cache-from: ${{ inputs['use-cache'] && 'type=gha' || '' }}
+          cache-to: ${{ inputs['use-cache'] && 'type=gha,mode=max' || '' }}
 
       - name: Summary
         run: |
-          quay_status="${{ inputs.quay-enabled }}"
-          if [ "${{ inputs.quay-enabled }}" = "true" ] && [ "${{ steps.quay.outputs.ok }}" != "true" ]; then
+          quay_status="${{ inputs['quay-enabled'] }}"
+          if [ "${{ inputs['quay-enabled'] }}" = "true" ] && [ "${{ steps.quay.outputs.ok }}" != "true" ]; then
             quay_status="true (login failed — skipped)"
           fi
 
@@ -304,8 +304,8 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Registry | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| GHCR     | ${{ inputs.ghcr-enabled }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Docker Hub | ${{ inputs.dockerhub-enabled }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| GHCR     | ${{ inputs['ghcr-enabled'] }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Docker Hub | ${{ inputs['dockerhub-enabled'] }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Quay.io  | ${quay_status} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Tags:**" >> "$GITHUB_STEP_SUMMARY"
