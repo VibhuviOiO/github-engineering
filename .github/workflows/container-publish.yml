@@ -228,7 +228,7 @@ jobs:
       - name: Log in to Quay.io
         id: quay-login
         if: ${{ inputs['quay-enabled'] }}
-        continue-on-error: ${{ fromJSON(inputs['quay-continue-on-error']) }}
+        continue-on-error: true
         uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
         with:
           registry: quay.io
@@ -237,15 +237,16 @@ jobs:
 
       - name: Determine Quay availability
         id: quay
-        if: ${{ success() || steps.quay-login.outcome == 'failure' }}
+        if: ${{ inputs['quay-enabled'] }}
         run: |
           if [ "${{ steps.quay-login.outcome }}" = "success" ]; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
-          else
+          elif [ "${{ inputs['quay-continue-on-error'] }}" = "true" ]; then
             echo "ok=false" >> "$GITHUB_OUTPUT"
-            if [ "${{ inputs['quay-enabled'] }}" = "true" ]; then
-              echo "::warning::Quay.io login failed; skipping Quay publishing."
-            fi
+            echo "::warning::Quay.io login failed; skipping Quay publishing."
+          else
+            echo "::error::Quay.io login failed and quay-continue-on-error is false."
+            exit 1
           fi
 
       - name: Build image list
