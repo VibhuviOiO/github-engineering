@@ -1,0 +1,244 @@
+name: Docker Build & Publish
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: Image name without registry prefix (e.g. "my-app").
+        required: true
+        type: string
+
+      dockerfile:
+        description: Path to the Dockerfile relative to the repository root.
+        required: false
+        type: string
+        default: Dockerfile
+
+      build-context:
+        description: Docker build context path.
+        required: false
+        type: string
+        default: .
+
+      platforms:
+        description: Comma-separated list of target platforms.
+        required: false
+        type: string
+        default: linux/amd64,linux/arm64
+
+      tags:
+        description: |
+          Multi-line docker/metadata-action tag rules.
+          Default: latest + short git SHA.
+        required: false
+        type: string
+        default: |
+          type=raw,value=latest
+          type=sha,prefix=
+
+      push:
+        description: Push the image to registries after building.
+        required: false
+        type: boolean
+        default: true
+
+      ghcr-enabled:
+        description: Publish to GitHub Container Registry (ghcr.io).
+        required: false
+        type: boolean
+        default: true
+
+      dockerhub-enabled:
+        description: Publish to Docker Hub (docker.io).
+        required: false
+        type: boolean
+        default: false
+
+      dockerhub-namespace:
+        description: |
+          Docker Hub namespace. Defaults to the GitHub repository owner.
+          Required when dockerhub-enabled is true.
+        required: false
+        type: string
+        default: ''
+
+      use-cache:
+        description: Enable GitHub Actions cache for Docker layers.
+        required: false
+        type: boolean
+        default: true
+
+      provenance:
+        description: Generate build provenance attestation.
+        required: false
+        type: boolean
+        default: false
+
+      sbom:
+        description: Generate SBOM attestation during build.
+        required: false
+        type: boolean
+        default: false
+
+      build-args:
+        description: |
+          Multi-line Docker build arguments (ARG key=value).
+        required: false
+        type: string
+        default: ''
+
+    secrets:
+      DOCKERHUB_USERNAME:
+        description: Docker Hub username. Required when dockerhub-enabled is true.
+        required: false
+
+      DOCKERHUB_TOKEN:
+        description: Docker Hub access token. Required when dockerhub-enabled is true.
+        required: false
+
+    outputs:
+      image-tags:
+        description: Comma-separated list of published image tags.
+        value: ${{ jobs.build-and-publish.outputs.image-tags }}
+
+      digest:
+        description: Image digest of the built image.
+        value: ${{ jobs.build-and-publish.outputs.digest }}
+
+      metadata:
+        description: JSON metadata from docker/metadata-action.
+        value: ${{ jobs.build-and-publish.outputs.metadata }}
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-publish:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+
+    outputs:
+      image-tags: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
+      metadata: ${{ steps.meta.outputs.json }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set lowercase owner
+        id: owner
+        run: |
+          owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "owner=${owner_lower}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate required registry secrets
+        env:
+          DOCKERHUB_ENABLED: ${{ inputs['dockerhub-enabled'] }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ "$DOCKERHUB_ENABLED" = "true" ]; then
+            missing=()
+            [ -z "$DOCKERHUB_USERNAME" ] && missing+=("DOCKERHUB_USERNAME")
+            [ -z "$DOCKERHUB_TOKEN" ] && missing+=("DOCKERHUB_TOKEN")
+            if [ ${#missing[@]} -ne 0 ]; then
+              echo "::error::Missing Docker Hub secrets: ${missing[*]}"
+              echo "::error::Add them as repository or organization secrets, then re-run this workflow."
+              exit 1
+            fi
+          fi
+
+          echo "All required registry secrets are present."
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ inputs['ghcr-enabled'] }}
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: ${{ inputs['dockerhub-enabled'] }}
+        uses: VibhuviOiO/github-engineering/.github/actions/ci/registry-login@main
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build image list
+        id: images
+        run: |
+          images=""
+          if [ "${{ inputs['ghcr-enabled'] }}" = "true" ]; then
+            images="${images}ghcr.io/${{ steps.owner.outputs.owner }}/${{ inputs['image-name'] }},"
+          fi
+          if [ "${{ inputs['dockerhub-enabled'] }}" = "true" ]; then
+            ns="${{ inputs['dockerhub-namespace'] }}"
+            [ -z "$ns" ] && ns="${{ steps.owner.outputs.owner }}"
+            images="${images}${ns}/${{ inputs['image-name'] }},"
+          fi
+          # Remove trailing comma
+          images="${images%,}"
+          echo "images=${images}" >> "$GITHUB_OUTPUT"
+          echo "Publishing to: ${images}"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.images.outputs.images }}
+          tags: ${{ inputs.tags }}
+          labels: |
+            org.opencontainers.image.title=${{ inputs['image-name'] }}
+            org.opencontainers.image.description=Container image for ${{ inputs['image-name'] }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+          annotations: |
+            org.opencontainers.image.title=${{ inputs['image-name'] }}
+            org.opencontainers.image.description=Container image for ${{ inputs['image-name'] }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs['build-context'] }}
+          file: ${{ inputs.dockerfile }}
+          push: ${{ inputs.push }}
+          platforms: ${{ inputs.platforms }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          provenance: ${{ inputs.provenance }}
+          sbom: ${{ inputs.sbom }}
+          build-args: ${{ inputs['build-args'] }}
+          cache-from: ${{ inputs['use-cache'] && 'type=gha' || '' }}
+          cache-to: ${{ inputs['use-cache'] && 'type=gha,mode=max' || '' }}
+
+      - name: Summary
+        run: |
+          echo "### Docker Image Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Registry | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| GHCR     | ${{ inputs['ghcr-enabled'] }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Docker Hub | ${{ inputs['dockerhub-enabled'] }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tags:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '${{ steps.meta.outputs.tags }}' | tr ',' '\n' | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Digest:** ${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"

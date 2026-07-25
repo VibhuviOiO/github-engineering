@@ -16,7 +16,7 @@ Folder layout under `.github/actions`:
 Recommended repository structure for multiple tech stacks:
 
 - Keep cross-technology actions generic and reusable: deploy, notify, approval, artifact upload, SBOM, image scan, IaC scan.
-- Keep technology-specific actions separate by technology: Python, Java, and Node.js build/test/package actions should live in their own action folders or reusable workflows.
+- Keep technology-specific actions separate by technology: Python, Java, and Node.js build/test/package actions should live in their own action folders or the equivalent Java and Node paths later.
 - Prefer capability-first stack folders under `ci/`, for example `ci/install/python/`, `ci/quality/python/`, `ci/test/python/`, and the equivalent Java and Node paths later.
 - Treat environments as inputs, not folder names. Deployment logic should use one deploy action with environment parameters rather than one folder per environment.
 
@@ -55,7 +55,7 @@ Notification utility actions with dummy targets:
 ### `ci/registry-login`
 
 Log in to any container registry supported by `docker/login-action`.
-Useful when you want to compose your own job instead of using the full `container-publish.yml` reusable workflow.
+Useful when you want to compose your own job instead of using the full `docker-build-publish.yml` reusable workflow.
 
 ```yaml
 steps:
@@ -70,7 +70,7 @@ steps:
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `registry` | no | — | Registry hostname (`ghcr.io`, `quay.io`, leave empty for Docker Hub) |
+| `registry` | no | — | Registry hostname (`ghcr.io`, leave empty for Docker Hub) |
 | `username` | yes | — | Registry username |
 | `password` | yes | — | Password or access token |
 | `logout` | no | `true` | Log out after the step |
@@ -79,12 +79,89 @@ steps:
 
 ## Reusable Workflows
 
+### `docker-build-publish.yml` (recommended)
+
+Full-featured Docker image build and publish pipeline.
+Use this for new projects; it wraps the standard `docker/build-push-action` with
+registry abstraction and optional attestations.
+
+**Capabilities:**
+- Docker Buildx with QEMU for multi-arch builds
+- Multi-registry publishing (GHCR, Docker Hub)
+- OCI image labels and annotations
+- GitHub Actions layer cache
+- SBOM and provenance attestations
+- Digest output
+
+**Inputs:**
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `image-name` | yes | — | Image name without registry prefix |
+| `dockerfile` | no | `Dockerfile` | Path to Dockerfile |
+| `build-context` | no | `.` | Docker build context |
+| `platforms` | no | `linux/amd64,linux/arm64` | Comma-separated target platforms |
+| `push` | no | `true` | Push after building |
+| `tags` | no | `latest`, `sha` | docker/metadata-action tag rules |
+| `ghcr-enabled` | no | `true` | Publish to GHCR |
+| `dockerhub-enabled` | no | `false` | Publish to Docker Hub |
+| `dockerhub-namespace` | no | repo owner | Docker Hub namespace |
+| `use-cache` | no | `true` | Enable GHA layer cache |
+| `provenance` | no | `false` | Generate provenance attestation |
+| `sbom` | no | `false` | Generate SBOM attestation |
+| `build-args` | no | — | Multi-line Docker build arguments |
+
+**Secrets:**
+
+| Secret | Required when | Description |
+|--------|---------------|-------------|
+| `DOCKERHUB_USERNAME` | `dockerhub-enabled: true` | Docker Hub username |
+| `DOCKERHUB_TOKEN` | `dockerhub-enabled: true` | Docker Hub access token |
+
+GHCR uses the built-in `GITHUB_TOKEN`; no extra secret required.
+
+**Example caller:**
+
+```yaml
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  publish:
+    uses: VibhuviOiO/github-engineering/.github/workflows/docker-build-publish.yml@main
+    with:
+      image-name: my-app
+      dockerfile: Dockerfile.prod
+      platforms: linux/amd64,linux/arm64
+      ghcr-enabled: true
+      dockerhub-enabled: true
+      dockerhub-namespace: myorg
+      sbom: true
+      provenance: true
+      tags: |
+        type=raw,value=latest
+        type=semver,pattern={{version}}
+        type=sha,prefix=
+    secrets: inherit
+```
+
 ### `container-publish.yml`
 
 Generic, multi-registry Docker image build and publish pipeline.
 
 **Capabilities:**
-- Build once, push to GHCR, Docker Hub, and/or Quay.io
+- Build once, push to GHCR and/or Docker Hub
 - Multi-platform builds via QEMU and Buildx
 - Configurable tags via docker/metadata-action rules
 - GitHub Actions cache for Docker layers
@@ -103,10 +180,6 @@ Generic, multi-registry Docker image build and publish pipeline.
 | `ghcr-enabled` | no | `true` | Publish to GHCR |
 | `dockerhub-enabled` | no | `false` | Publish to Docker Hub |
 | `dockerhub-namespace` | no | repo owner | Docker Hub namespace |
-| `quay-enabled` | no | `false` | Publish to Quay.io |
-| `quay-namespace` | no | repo owner | Quay.io namespace |
-| `quay-robot-account` | no | — | Robot account short name. When set, the login username becomes `<quay-namespace>+<quay-robot-account>` |
-| `quay-continue-on-error` | no | `false` | Skip Quay and continue if Quay login fails |
 | `use-cache` | no | `true` | Enable GHA layer cache |
 | `provenance` | no | `false` | Generate provenance attestation |
 | `sbom` | no | `false` | Generate SBOM attestation |
@@ -118,8 +191,6 @@ Generic, multi-registry Docker image build and publish pipeline.
 |--------|---------------|-------------|
 | `DOCKERHUB_USERNAME` | `dockerhub-enabled: true` | Docker Hub username |
 | `DOCKERHUB_TOKEN` | `dockerhub-enabled: true` | Docker Hub access token |
-| `QUAY_USERNAME` | `quay-enabled: true` | Quay.io username |
-| `QUAY_TOKEN` | `quay-enabled: true` | Quay.io password or robot token |
 
 GHCR uses the built-in `GITHUB_TOKEN`; no extra secret required.
 
@@ -173,22 +244,6 @@ jobs:
     secrets: inherit
 ```
 
-**Example caller (all three registries):**
-
-```yaml
-jobs:
-  publish:
-    uses: VibhuviOiO/github-engineering/.github/workflows/container-publish.yml@main
-    with:
-      image-name: my-app
-      ghcr-enabled: true
-      dockerhub-enabled: true
-      dockerhub-namespace: myorg
-      quay-enabled: true
-      quay-namespace: myorg
-    secrets: inherit
-```
-
 ### `validate-container-secrets.yml`
 
 Test registry authentication without building or pushing. Run this after adding secrets to a repository.
@@ -199,7 +254,6 @@ Test registry authentication without building or pushing. Run this after adding 
 |-------|----------|---------|-------------|
 | `ghcr-enabled` | no | `true` | Validate GHCR login |
 | `dockerhub-enabled` | no | `false` | Validate Docker Hub login |
-| `quay-enabled` | no | `false` | Validate Quay.io login |
 
 **Secrets:** same as `container-publish.yml`.
 
@@ -219,7 +273,6 @@ jobs:
     with:
       ghcr-enabled: true
       dockerhub-enabled: true
-      quay-enabled: true
     secrets: inherit
 ```
 
@@ -247,25 +300,9 @@ No extra credentials required. The workflow uses the built-in `GITHUB_TOKEN`.
    - `DOCKERHUB_TOKEN` = the access token
 4. Repositories are created automatically on first push (e.g., `vibhuvioio/ldap-manager`, `vibhuvioio/openldap`).
 
-### Quay.io
-
-1. Sign up or log in to [quay.io](https://quay.io).
-2. Create an organization (e.g., `vibhuvioio`) or use your personal namespace.
-3. Create a robot account:
-   - **Organization → Robot Accounts → Create Robot Account**
-   - The robot username is shown as `<organization>+<robot-name>`, e.g. `vibhuvioio+github_actions`
-   - Copy the **token** (the long random string, not the Kubernetes secret blob)
-4. Add repository/org **Secrets** (names must match exactly):
-   - `QUAY_USERNAME` = the full robot username (`vibhuvioio+github_actions`)
-   - `QUAY_TOKEN` = the robot token
-5. In the caller workflow you can either:
-   - leave `quay-robot-account` empty and rely on `QUAY_USERNAME`, or
-   - set `quay-namespace: vibhuvioio` and `quay-robot-account: github_actions`, and put only the namespace in `QUAY_USERNAME`
-6. Repositories can be created automatically on first push or manually in the UI.
-
 ### Recommended secrets per repository
 
-| Repository | GHCR | Docker Hub | Quay |
-|---|---|---|---|
-| `ldap-manager` | `GITHUB_TOKEN` (auto) | `DOCKERHUB_USERNAME`<br>`DOCKERHUB_TOKEN` | `QUAY_USERNAME`<br>`QUAY_TOKEN` |
-| `openldap-docker` | `GITHUB_TOKEN` (auto) | `DOCKERHUB_USERNAME`<br>`DOCKERHUB_TOKEN` | `QUAY_USERNAME`<br>`QUAY_TOKEN` |
+| Repository | GHCR | Docker Hub |
+|---|---|---|
+| `ldap-manager` | `GITHUB_TOKEN` (auto) | `DOCKERHUB_USERNAME`<br>`DOCKERHUB_TOKEN` |
+| `openldap-docker` | `GITHUB_TOKEN` (auto) | `DOCKERHUB_USERNAME`<br>`DOCKERHUB_TOKEN` |
